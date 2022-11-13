@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"go-jike-sdk/jike"
 	"log"
-	"strings"
+
+	"github.com/robfig/cron/v3"
 )
 
 var (
@@ -17,18 +18,37 @@ var (
 
 func init() {
 	flag.StringVar(&areaCode, "areaCode", "+86", "areaCode for Jike.")
-	flag.StringVar(&phone, "phone", "", "phone for Jike.")
-	flag.StringVar(&password, "password", "", "password for Jike.")
+	flag.StringVar(&phone, "phone", "17820160690", "phone for Jike.")
+	flag.StringVar(&password, "password", "981475", "password for Jike.")
 	flag.Parse()
 }
 
 func main() {
+	c := cron.New()
+	c.AddFunc("0 0 */8 * * ?", Wallpapers)
+	c.Start()
+	select {}
+}
+
+func Wallpapers() {
+	ctx, client := Init()
+
+	wallpapers := jike.GetWallpapers()
+	pictureKeys := jike.UploadWallpapers(wallpapers)
+
+	_, err := client.UserService.Create(ctx, pictureKeys)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func Init() (context.Context, *jike.Jike) {
+	content := context.Background()
 	if phone == "" || password == "" {
 		flag.PrintDefaults()
-		return
+		return content, nil
 	}
 
-	content := context.Background()
 	client := jike.NewJike(areaCode, phone)
 
 	loginOutput, err := client.UserService.PasswordLogin(content, areaCode, phone, password)
@@ -36,12 +56,5 @@ func main() {
 		log.Fatalln(err)
 	}
 	fmt.Printf("Username: %s \nScreenName: %s\n", loginOutput.User.Username, loginOutput.User.ScreenName)
-
-	timeline, err := client.UserService.FollowingTimeline(content, 10, jike.TimelineLoadMoreKey{})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	for _, item := range timeline.Data {
-		println("⭐️ " + item.User.ScreenName + " " + strings.ReplaceAll(item.Content, "\n", "↲"))
-	}
+	return content, client
 }

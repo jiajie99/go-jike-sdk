@@ -1079,3 +1079,8 @@ type TimelineLoadMoreKey struct {
 	LastPageEarliestTime int64  `json:"lastPageEarliestTime"`
 	LastReadTime         int64  `json:"lastReadTime"`
 }
+
+type CreateOutput struct {
+	Success bool   `json:"success"`
+	Toast   string `json:"toast"`
+}
