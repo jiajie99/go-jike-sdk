@@ -105,7 +105,7 @@ func (u *UsersService) Create(ctx context.Context, pictureKeys []string) (*Creat
 	}
 	output := &CreateOutput{}
 	req := &request{
-		Debug:      true,
+		Debug:      false,
 		HTTPMethod: http.MethodPost,
 		HTTPPath:   `/1.0/originalPosts/create`,
 		Input:      input,

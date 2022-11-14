@@ -24,8 +24,11 @@ func init() {
 }
 
 func main() {
-	c := cron.New()
-	c.AddFunc("0 0 */8 * * ?", Wallpapers)
+	c := cron.New(cron.WithSeconds())
+	_, err := c.AddFunc("0 0 */8 * * ?", Wallpapers)
+	if err != nil {
+		log.Fatal(err)
+	}
 	c.Start()
 	select {}
 }
