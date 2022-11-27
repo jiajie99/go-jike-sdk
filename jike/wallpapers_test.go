@@ -7,8 +7,8 @@ import (
 )
 
 func TestUploadWallpapers(t *testing.T) {
-	wallpapers := GetWallpapers()
-	UploadWallpapers(wallpapers)
+	wallpapers, _ := GetWallpapers()
+	UploadWallpapersParallel(wallpapers)
 }
 
 func TestGetWallpaperName(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"time"
 )
 
 type UsersService struct {
@@ -83,25 +84,26 @@ type Resp struct {
 }
 
 func (u *UsersService) Create(ctx context.Context, pictureKeys []string) (*CreateOutput, error) {
-	res, err := http.Get("https://api.vvhan.com/api/en?type=sj")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var resp Resp
-	err = json.Unmarshal(body, &resp)
-	if err != nil {
-		log.Fatal(err)
-	}
 	input := map[string]interface{}{
 		"type":          "originalPosts",
-		"content":       resp.Data.En + "\n" + resp.Data.Zh,
 		"pictureKeys":   pictureKeys,
 		"submitToTopic": "59e58bea89ee3f0016b4d2c6",
+	}
+	res, err := http.Get("https://api.vvhan.com/api/en?type=sj")
+	defer res.Body.Close()
+	if err != nil {
+		log.Println(err)
+	} else {
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		var resp Resp
+		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			return nil, err
+		}
+		input["content"] = resp.Data.En + "\n" + resp.Data.Zh
 	}
 	output := &CreateOutput{}
 	req := &request{
@@ -170,6 +172,7 @@ func UploadFile(info UploadFileInfo) (*UploadFileResp, error) {
 
 	remote, err := getRemote(info.OriginalUrl)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -184,9 +187,13 @@ func UploadFile(info UploadFileInfo) (*UploadFileResp, error) {
 		return nil, err
 	}
 
+	log.Printf("start write %s...\n", info.OriginalUrl)
 	_, err = io.Copy(formFile, file)
 	if err != nil {
+		log.Printf("write %s fail\n", info.OriginalUrl)
 		return nil, err
+	} else {
+		log.Printf("write %s success\n", info.OriginalUrl)
 	}
 
 	for key, val := range params {
@@ -223,17 +230,30 @@ func UploadFile(info UploadFileInfo) (*UploadFileResp, error) {
 }
 
 func getRemote(url string) ([]byte, error) {
-	res, err := http.Get(url)
+
+	httpClient := http.Client{
+		Timeout: 6 * time.Minute,
+	}
+
+	log.Printf("start get %s...\n", url)
+	res, err := httpClient.Get(url)
 	if err != nil {
+		log.Printf("get %s fail\n", url)
 		// 如果有错误返回错误内容
 		return nil, err
 	}
+	log.Printf("get %s success\n", url)
 	// 使用完成后要关闭，不然会占用内存
 	defer res.Body.Close()
+	log.Printf("start read %s...\n", url)
+	time.Now()
 	// 读取字节流
 	bytes, err := io.ReadAll(res.Body)
 	if err != nil {
+		log.Printf("read %s fail\n", url)
 		return nil, err
+	} else {
+		log.Printf("read %s success\n", url)
 	}
-	return bytes, err
+	return bytes, nil
 }
